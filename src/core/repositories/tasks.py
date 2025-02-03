@@ -85,30 +85,30 @@ class TaskRepository:
 
         return formatted_tasks
 
-    @staticmethod
-    async def update_task(task_id: int, status: str, session: Session):
-        task = session.execute(
-            text("SELECT * FROM tasks WHERE id = :task_id"), {"task_id": task_id}
-        ).fetchone()
-
-        if not task:
-            raise NotFoundTasksExcept
-
-        if status not in ["approved", "rejected"]:
-            raise InvalidStatusExcept
-        else:
-            session.execute(
-                text("DELETE FROM tasks WHERE id = :task_id"),
-                {"task_id": task_id},
-            )
-
-        session.execute(
-            text("UPDATE tasks SET status = :status WHERE id = :task_id"),
-            {"status": status, "task_id": task_id},
-        )
-        session.commit()
-
-        return "Task status updated successfully"
+    # @staticmethod
+    # async def update_task(task_id: int, status: str, session: Session):
+    #     task = session.execute(
+    #         text("SELECT * FROM tasks WHERE id = :task_id"), {"task_id": task_id}
+    #     ).fetchone()
+    #
+    #     if not task:
+    #         raise NotFoundTasksExcept
+    #
+    #     if status not in ["approved", "rejected"]:
+    #         raise InvalidStatusExcept
+    #     else:
+    #         session.execute(
+    #             text("DELETE FROM tasks WHERE id = :task_id"),
+    #             {"task_id": task_id},
+    #         )
+    #
+    #     session.execute(
+    #         text("UPDATE tasks SET status = :status WHERE id = :task_id"),
+    #         {"status": status, "task_id": task_id},
+    #     )
+    #     session.commit()
+    #
+    #     return "Task status updated successfully"
 
     @staticmethod
     async def delete_task(task_id: int, session: Session):

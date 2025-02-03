@@ -54,19 +54,19 @@ async def create_task(
     )
 
 
-@router.patch(
-    "/{task_id}",
-    response_model=TaskBaseResponse,
-    tags=["Tasks"],
-    summary="Обновления статуса задачи по id",
-    responses=base_bad_response_for_endpoints_of_task,
-)
-async def update_task_status(
-    task_id: int,
-    status: str,
-    session: Session = Depends(get_db_session),
-):
-    return await TaskService.update_task(task_id, status, session)
+# @router.patch(
+#     "/{task_id}",
+#     response_model=TaskBaseResponse,
+#     tags=["Tasks"],
+#     summary="Обновления статуса задачи по id",
+#     responses=base_bad_response_for_endpoints_of_task,
+# )
+# async def update_task_status(
+#     task_id: int,
+#     status: str,
+#     session: Session = Depends(get_db_session),
+# ):
+#     return await TaskService.update_task(task_id, status, session)
 
 
 @router.delete(

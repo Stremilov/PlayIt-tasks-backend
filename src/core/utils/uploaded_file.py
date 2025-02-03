@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import UploadFile
 
-from src.core.config import UPLOAD_FOLDER
+from src.core.utils.config import UPLOAD_FOLDER
 from src.core.utils.exceptions import handle_http_exceptions
 
 

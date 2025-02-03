@@ -25,9 +25,9 @@ class TaskService:
         return TaskRead(status="success", message="Создана новая Задача", task=new_task)
 
     @staticmethod
-    async def update_task(task_id: int, status: str, session: Session):
-        msg = await TaskRepository.update_task(task_id, status, session)
-        return TaskBaseResponse(status="success", message=msg)
+    # async def update_task(task_id: int, status: str, session: Session):
+    #     msg = await TaskRepository.update_task(task_id, status, session)
+    #     return TaskBaseResponse(status="success", message=msg)
 
     @staticmethod
     async def delete_task(task_id: int, session: Session):

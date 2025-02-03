@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    restart: always
+    container_name: playit-tasks-backend
+    ports:
+      - "8000:8000"
+#    networks:
+#      - skynet
+#    logging:
+#      driver: loki
+#      options:
+#        loki-url: http://localhost:3100/loki/api/v1/push
+#
+#networks:
+#  skynet:
+#    external: true

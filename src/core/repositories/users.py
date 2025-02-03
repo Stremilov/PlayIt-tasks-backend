@@ -29,7 +29,11 @@ class UserRepository:
 
     @staticmethod
     def update_user_balance(session: Session, username: str, value: int):
-        statement = update(Users).where(Users.username == username).values(balance=Users.balance + value)
+        statement = (
+            update(Users)
+            .where(Users.username == username)
+            .values(balance=Users.balance + value)
+        )
         session.execute(statement)
         session.commit()
 
@@ -42,16 +46,20 @@ class UserRepository:
         return user.to_read_model()
 
     @staticmethod
-    def update_user_personal_data(session: Session, username: str, new_data: UpdatePersonalDataSchema):
+    def update_user_personal_data(
+        session: Session, username: str, new_data: UpdatePersonalDataSchema
+    ):
         update_values = {}
 
         if new_data.full_name is not None and new_data.full_name != "":
-            update_values['full_name'] = new_data.full_name
+            update_values["full_name"] = new_data.full_name
 
         if new_data.group_number is not None and new_data.group_number != "":
-            update_values['group_number'] = new_data.group_number
+            update_values["group_number"] = new_data.group_number
 
-        statement = update(Users).where(Users.username == username).values(**update_values)
+        statement = (
+            update(Users).where(Users.username == username).values(**update_values)
+        )
         session.execute(statement)
         session.commit()
 

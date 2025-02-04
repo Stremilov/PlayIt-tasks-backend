@@ -4,7 +4,7 @@ services:
     restart: always
     container_name: playit-tasks-backend
     ports:
-      - "8002:8000"
+      - "8001:8001"
     networks:
       - skynet
     volumes:

@@ -33,12 +33,12 @@ jobs:
     - name: Deploy
       env:
         SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        SSH_HOST: ${{ secrets.SERVER_HOST }}
-        SSH_USERNAME: ${{ secrets.DEPLOY_USER }}
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
       run: |
         sudo apt-get update
         sudo apt-get install -y sshpass
-        sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST '
+        sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SERVER_HOST '
           cd ~/playit/PlayIt-tasks-backend
           git pull
           docker compose -f docker-compose.yml down || true

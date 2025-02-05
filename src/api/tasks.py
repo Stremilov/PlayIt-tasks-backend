@@ -19,12 +19,18 @@ router = APIRouter()
     Возвращает все задания из таблицы
 
     - Аутентифицирует пользоватея по JWT;
-    - Парсит excel таблицу;
-    - Возвращает все задания.
+    - При первом запросе данные парсятся из Excel и сохраняются в Redis;
+    - При последующих запросах данные получаются из кеша.
     """,
 )
 async def parse_all_tasks(request: Request):
-    return await ExcelService.parse_shop(request)
+    """
+    Эндпоинт для получения всех заданий.
+    Сначала пытается вернуть данные из кеша.
+    Если кеш пуст или данные невалидны, вызывается ExcelService для парсинга Excel,
+    а результат сохраняется в Redis с TTL 6 часов.
+    """
+    return await TaskService.get_all_tasks(request)
 
 
 @router.post(

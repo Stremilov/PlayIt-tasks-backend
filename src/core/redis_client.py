@@ -1,10 +1,11 @@
 import redis
-from src.core.utils.config import REDIS_HOST, REDIS_PORT, REDIS_DB
+
+from src.core.utils.config import settings
 
 redis_client = redis.Redis(
-    host=REDIS_HOST,
-    port=REDIS_PORT,
-    db=REDIS_DB,
+    host=settings.redis.REDIS_HOST,
+    port=settings.redis.REDIS_PORT,
+    db=settings.redis.REDIS_DB,
     decode_responses=True  # Получаем строки, а не байты
 )
 

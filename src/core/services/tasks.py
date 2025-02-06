@@ -4,53 +4,61 @@ from sqlalchemy.orm import Session
 
 from src.core.repositories.tasks import TaskRepository
 from src.core.schemas.tasks import TaskRead, TaskBaseResponse
+from src.core.utils.config import settings
 from src.core.utils.uploaded_file import upload_file
 from src.core.schemas.tasks import ParseTasksResponse
 from src.core.services.excel import ExcelService
 from src.core.redis_client import redis_client
-from src.core.utils.config import CACHE_KEY, CACHE_EXPIRE
 
 
 class TaskService:
+
+    @staticmethod
+    def _get_cached_data():
+        try:
+            return redis_client.get(settings.redis.CACHE_KEY)
+        except Exception as e:
+            # Логирование ошибки подключения к Redis
+            return None
+
+    @staticmethod
+    def _parse_cached_data(cached_data):
+        try:
+            return json.loads(cached_data)
+        except json.JSONDecodeError:
+            redis_client.delete(settings.redis.CACHE_KEY)
+            return None
+
+    @staticmethod
+    def _cache_response(response):
+        try:
+            redis_client.set(settings.redis.CACHE_KEY, json.dumps(response.data), ex=settings.redis.CACHE_KEY)
+        except Exception:
+            # Ошибка при сохранении в Redis – логирование по необходимости
+            pass
+
     @staticmethod
     async def get_all_tasks(request: Request) -> ParseTasksResponse:
         """
         Получает все задания с кешированием:
-         1. Пытается получить данные из Redis по ключу 'tasks:all' (Это ключ из .env файла).
-         2. Если данные есть и корректны, возвращает их.
-         3. Если кеш пуст или данные повреждены, парсит Excel через ExcelService.parse_shop.
-         4. Сохраняет полученные данные в Redis с TTL 6 часов (21600 секунд).
+          1. Пытается получить данные из Redis по ключу 'tasks:all'.
+          2. Если данные есть и корректны, возвращает их.
+          3. Если кеш пуст или данные повреждены, парсит Excel через ExcelService.parse_shop.
+          4. Сохраняет полученные данные в Redis с TTL 6 часов (21600 секунд).
         """
-
-        try:
-            # Попытка получить данные из кеша
-            cached_data = redis_client.get(CACHE_KEY)
-        except Exception as redis_error:
-            # Если возникла ошибка подключения к Redis – можно залогировать
-
-            cached_data = None
+        cached_data = TaskService._get_cached_data()
 
         if cached_data:
-            try:
-                data = json.loads(cached_data)
+            parsed_data = TaskService._parse_cached_data(cached_data)
+            if parsed_data:
                 return ParseTasksResponse(
                     status=status.HTTP_200_OK,
                     details="Данные получены из кеша.",
-                    data=data,
+                    data=parsed_data,
                 )
-            except Exception:
-                # Если данные в кеше повреждены, удаляем ключ и продолжаем
-                redis_client.delete(CACHE_KEY)
 
-        # Если в кеше нет данных или произошла ошибка – вызываем парсер Excel
         response = await ExcelService.parse_shop(request)
-
-        try:
-            # Кешируем результат с заданным TTL
-            redis_client.set(CACHE_KEY, json.dumps(response.data), ex=CACHE_EXPIRE)
-        except Exception:
-            # Если ошибка при сохранении в Redis – просто продолжаем без кеша
-            pass
+        TaskService._cache_response(response)
 
         return response
 

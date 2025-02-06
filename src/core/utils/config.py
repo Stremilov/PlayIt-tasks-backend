@@ -43,7 +43,7 @@ class DBSettings(BaseModel):
     DB_NAME: str = os.getenv("DATABASE_NAME", "postgres")
     DB_USER: str = os.getenv("DATABASE_USER", "postgres")
     DB_PORT: str = os.getenv("DATABASE_PORT", "5432")
-    DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    DATABASE_URL: str = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 
 class TokenSettings(BaseModel):

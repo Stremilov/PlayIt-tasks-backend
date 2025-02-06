@@ -5,11 +5,13 @@ import logging
 from fastapi import FastAPI
 
 from src.api.routers import all_routers
+from src.core.utils.config import settings
 
 logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=settings.logging.log_level_value,
+    format=settings.logging.log_format
 )
-logging.getLogger("tasks_logger")
+
 
 app = FastAPI(root_path="/playit/tasks")
 
@@ -19,7 +21,11 @@ for router in all_routers:
 
 
 async def main():
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
+    uvicorn.run(
+        "main:app",
+        host=settings.run.host,
+        port=settings.run.port,
+        reload=True)
 
 
 if __name__ == "__main__":

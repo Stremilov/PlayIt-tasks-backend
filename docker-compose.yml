@@ -9,10 +9,24 @@ services:
       - skynet
     volumes:
       - uploads:/uploads
+    depends_on:
+      - redis
     logging:
       driver: loki
       options:
         loki-url: http://localhost:3100/loki/api/v1/push
+
+  redis:
+    image: redis:7
+    container_name: ${REDIS_HOST:-playit-tasks-redis}
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - skynet
+    # При необходимости можно постоянно хранить данные Redis с помощью Volumes
+#    volumes:
+#      - redis-data:/data
 
 networks:
   skynet:
@@ -20,3 +34,4 @@ networks:
 
 volumes:
   uploads:
+#  redis-data:

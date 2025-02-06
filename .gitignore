@@ -1,4 +1,41 @@
-.idea
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# dotenv files
+.env
+
+# VS Code settings
+.vscode/
+
+# PyCharm
+.idea/
+
+# Excel-файл, который не требуется в репозитории
 PlayIT.xlsx
-.venv
-uploads
+
+# Папка для загрузок файлов (например, пользовательские файлы)
+uploads/

@@ -37,6 +37,11 @@ class RunSettings(BaseModel):
     port: int = 8001
 
 
+class BotSettings(BaseModel):
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN")
+    MODERATOR_CHAT_ID: str = os.getenv("MODERATOR_CHAT_ID")
+
+
 class DBSettings(BaseModel):
     DB_PASSWORD: str = os.getenv("DATABASE_PASSWORD")
     DB_HOST: str = os.getenv("DATABASE_HOST", "localhost")
@@ -60,6 +65,7 @@ class RedisSettings(BaseModel):
 
 
 class Settings(BaseSettings):
+    bot: BotSettings = BotSettings()
     db: DBSettings = DBSettings()
     token: TokenSettings = TokenSettings()
     redis: RedisSettings = RedisSettings()

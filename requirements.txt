@@ -6,3 +6,6 @@ pandas~=2.2.3
 uvicorn~=0.34.0
 redis
 psycopg2-binary
+python-multipart
+openpyxl
+aiohttp

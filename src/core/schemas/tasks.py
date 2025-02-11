@@ -30,7 +30,3 @@ class TaskSchema(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class TaskRead(TaskBaseResponse):
-    task: TaskSchema

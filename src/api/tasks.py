@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Request, Depends, Form, UploadFile, File
-from sqlalchemy.orm import Session
+import json
+import logging
+
+from aiohttp import ClientSession, FormData
+from fastapi import APIRouter, Request, Form, UploadFile, File, HTTPException
+from starlette import status
 
 from src.api.responses import base_bad_response_for_endpoints_of_task
-from src.core.database.db import get_db_session
-from src.core.schemas.tasks import ParseTasksResponse, TaskRead, TaskBaseResponse
-from src.core.services.excel import ExcelService
+from src.core.schemas.tasks import ParseTasksResponse
 from src.core.services.tasks import TaskService
+from src.core.utils.config import settings
 
 router = APIRouter()
 
@@ -34,53 +37,48 @@ async def parse_all_tasks(request: Request):
 
 
 @router.post(
-    "/create",
-    response_model=TaskRead,
-    tags=["Tasks"],
-    status_code=201,
-    summary="Создание новой задачи",
-    description="""
-                Эндпоинт для создания задачи. Сохраняет фото в локальной папке и записывает задачу в базу данных.
-                """,
-    responses=base_bad_response_for_endpoints_of_task,
+    path="/create",
+    summary="Создать задание",
+    description="Создаёт задание и отправляет его модератору с фото.",
+    responses=base_bad_response_for_endpoints_of_task
 )
 async def create_task(
-    user_id: int = Form(...),
-    description: str = Form(...),
-    value: int = Form(...),
-    uploaded_file: UploadFile = File(...),
-    session: Session = Depends(get_db_session),
+    task_id: int = Form(..., description="ID задания"),
+    user_id: int = Form(..., description="ID пользователя"),
+    value: str = Form(..., description="Количество баллов"),
+    photo: UploadFile = File(..., description="Фото для задания")
 ):
-    return await TaskService.create_tasks(
-        user_id=user_id,
-        description=description,
-        value=value,
-        uploaded_file=uploaded_file,
-        session=session
-    )
+    """
+    Этот эндпоинт принимает данные задания и отправляет его модератору через Telegram Bot API.
+    """
+    logging.info("Данные приняты")
+    result = await send_task_to_moderator(task_id, user_id, value, photo)
+    return {"status": result}
 
 
-# @router.patch(
-#     "/{task_id}",
-#     response_model=TaskBaseResponse,
-#     tags=["Tasks"],
-#     summary="Обновления статуса задачи по id",
-#     responses=base_bad_response_for_endpoints_of_task,
-# )
-# async def update_task_status(
-#     task_id: int,
-#     status: str,
-#     session: Session = Depends(get_db_session),
-# ):
-#     return await TaskService.update_task(task_id, status, session)
+async def send_task_to_moderator(task_id: int, user_id: int, value: str, photo: UploadFile):
+    url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendPhoto"
 
+    message = (f"Новое задание от пользователя:\n\n"
+               f"Количество баллов: {value}")
 
-@router.delete(
-    "/{task_id}",
-    response_model=TaskBaseResponse,
-    tags=["Tasks"],
-    summary="Удаление задачи по id",
-    responses=base_bad_response_for_endpoints_of_task,
-)
-async def delete_task(task_id: int, session: Session = Depends(get_db_session)):
-    return await TaskService.delete_task(task_id, session)
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "Принять", "callback_data": f"approve_{task_id}_{user_id}_{value}"}],
+            [{"text": "Отклонить", "callback_data": f"reject_{task_id}_{user_id}"}]
+        ]
+    }
+
+    form_data = FormData()
+    form_data.add_field('chat_id', str(settings.bot.MODERATOR_CHAT_ID))
+    form_data.add_field('caption', message)
+    form_data.add_field('reply_markup', json.dumps(keyboard))
+    form_data.add_field('photo', photo.file, filename=photo.filename, content_type=photo.content_type)
+
+    async with ClientSession() as session:
+        async with session.post(url, data=form_data) as response:
+            if response.status != 200:
+                error_text = await response.text()
+                raise HTTPException(status_code=500, detail=f"Failed to send task to moderator: {error_text}")
+
+    return status.HTTP_200_OK

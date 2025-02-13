@@ -5,16 +5,16 @@ services:
     container_name: playit-tasks-backend
     ports:
       - "8001:8001"
-#    networks:
-#      - skynet
+    networks:
+      - skynet
     volumes:
       - uploads:/uploads
     depends_on:
       - redis
-#    logging:
-#      driver: loki
-#      options:
-#        loki-url: http://localhost:3100/loki/api/v1/push
+    logging:
+      driver: loki
+      options:
+        loki-url: http://localhost:3100/loki/api/v1/push
 
   redis:
     image: redis:7
@@ -22,15 +22,15 @@ services:
     restart: always
     ports:
       - "6379:6379"
-#    networks:
-#      - skynet
+    networks:
+      - skynet
     # При необходимости можно постоянно хранить данные Redis с помощью Volumes
 #    volumes:
 #      - redis-data:/data
 
-#networks:
-#  skynet:
-#    external: true
+networks:
+  skynet:
+    external: true
 
 volumes:
   uploads:

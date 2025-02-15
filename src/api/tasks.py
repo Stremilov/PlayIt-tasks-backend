@@ -69,17 +69,17 @@ async def send_task_to_moderator(
         task_id: int, user_id: int, value: str, text: Optional[str] = None, file: Optional[UploadFile] = None
 ):
     """
-    Функция отправляет задание модератору.
+    Отправляет задание модератору.
+
+    Возможные входные данные:
+    - Только текст
+    - Фото + текст
+    - Видео + текст
     """
-    url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendMessage"
 
-    message = (
-        f"Новое задание от пользователя:\n\n"
-        f"Количество баллов: {value}"
-    )
-
+    message = f"Новое задание от пользователя:\n\nКоличество баллов: {value}"
     if text:
-        message += f"\nТекст: {text}"
+        message += f"\n\nТекст пользователя: {text}"
 
     keyboard = {
         "inline_keyboard": [
@@ -88,20 +88,46 @@ async def send_task_to_moderator(
         ]
     }
 
-    form_data = FormData()
-    form_data.add_field('chat_id', str(settings.bot.MODERATOR_CHAT_ID))
-    form_data.add_field('text', message)
-    form_data.add_field('reply_markup', json.dumps(keyboard))
-
-    # Если есть файл, отправляем фото/видео
+    # Определяем, какой тип файла отправлять
     if file:
-        url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendPhoto"
-        form_data.add_field('photo', file.file, filename=file.filename, content_type=file.content_type)
+        if "image" in file.content_type:
+            url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendPhoto"
+            file_type = "photo"
+        elif "video" in file.content_type:
+            url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendVideo"
+            file_type = "video"
+        else:
+            raise HTTPException(status_code=400, detail="Неподдерживаемый формат файла")
 
+        # Формируем данные для отправки
+        form_data = FormData()
+        form_data.add_field('chat_id', str(settings.bot.MODERATOR_CHAT_ID))
+        form_data.add_field('caption', message)  # Описание (подпись)
+        form_data.add_field('reply_markup', json.dumps(keyboard))
+        form_data.add_field(file_type, file.file, filename=file.filename, content_type=file.content_type)
+
+    else:
+        # Если файл отсутствует, отправляем только текст
+        url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendMessage"
+
+        payload = {
+            "chat_id": str(settings.bot.MODERATOR_CHAT_ID),
+            "text": message,
+            "reply_markup": json.dumps(keyboard),
+            "parse_mode": "HTML",
+        }
+
+    # Отправка запроса
     async with ClientSession() as session:
-        async with session.post(url, data=form_data) as response:
-            if response.status != 200:
-                error_text = await response.text()
-                raise HTTPException(status_code=500, detail=f"Failed to send task to moderator: {error_text}")
+        if file:
+            async with session.post(url, data=form_data) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    raise HTTPException(status_code=500, detail=f"Failed to send task to moderator: {error_text}")
+        else:
+            async with session.post(url, json=payload) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    raise HTTPException(status_code=500, detail=f"Failed to send text task to moderator: {error_text}")
 
     return status.HTTP_200_OK

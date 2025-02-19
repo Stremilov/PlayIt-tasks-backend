@@ -7,11 +7,11 @@ from src.core.utils.exceptions import InvalidStatusExcept, NotFoundTasksExcept
 class TaskRepository:
     @staticmethod
     async def create_task(
-        user_id: int,
-        description: str,
-        photo: str,
-        value: int,
-        session: Session,
+            user_id: int,
+            description: str,
+            photo: str,
+            value: int,
+            session: Session,
     ):
         # в sqlite CURRENT_TIMESTAMP в Postgresql NOW()
         insert_query = text(

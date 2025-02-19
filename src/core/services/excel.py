@@ -1,6 +1,6 @@
 import json
 from fastapi import HTTPException, status, Request
-from pandas import read_excel
+from pandas import read_excel, DataFrame
 from src.core.schemas.tasks import ParseTasksResponse
 
 
@@ -47,3 +47,38 @@ class ExcelService:
             details="Данные получены напрямую из Excel файла.",
             data=formatted_json_data,
         )
+
+    @staticmethod
+    def load_characters() -> DataFrame:
+        """
+        Загружает лист 'Персонажи' из Excel-файла и возвращает DataFrame.
+        Можно в будущем здесь добавить кэширование, проверку наличия файла и т.д.
+        """
+        file_path = "PlayIT.xlsx"  # или полный путь, если нужен
+
+        # TODO: Можно выгрузить в кеш редиса, чтобы каждый раз не парсить
+        df = read_excel(file_path, sheet_name="Персонажи")
+
+        if df.empty:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Пустая таблица 'Персонажи' в Excel"
+            )
+        return df
+
+    @staticmethod
+    def check_answer(task_id: int, user_answer: str) -> bool | None:
+        """
+        Проверяет, совпадает ли ответ пользователя с правильным ответом из Excel-файла.
+        Возвращает:
+         - True, если ответ совпал;
+         - False, если ответ не совпал;
+        """
+        df = ExcelService.load_characters()
+
+        row = df[df["№"] == task_id]
+        if row.empty:
+            raise HTTPException(status_code=404, detail="Задание не найдено")
+
+        correct_answer = str(row.iloc[0]["Ответ"]).strip().lower()
+        return correct_answer == user_answer.strip().lower()

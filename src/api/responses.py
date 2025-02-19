@@ -41,3 +41,9 @@ base_bad_response_for_endpoints_of_task = {
         },
     },
 }
+
+bad_responses_autocheck = {
+    404: {
+        "description": "Задание с указанным ID не найдено в Excel-файле."
+    }
+}

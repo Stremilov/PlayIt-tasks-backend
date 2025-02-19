@@ -1,7 +1,7 @@
 import enum
 
 from fastapi import Form, UploadFile, File
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ParseTasksResponse(BaseModel):
@@ -30,3 +30,8 @@ class TaskSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CheckTaskAnswerInputSchema(BaseModel):
+    task_id: int = Field(..., description="ID задания")
+    user_answer: str = Field(..., description="Ответ пользователя")

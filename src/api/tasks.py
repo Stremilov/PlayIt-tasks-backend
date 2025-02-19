@@ -3,14 +3,12 @@ import logging
 from typing import Optional
 
 import pandas as pd
-from aiohttp import ClientSession, FormData
-from fastapi import APIRouter, Request, Form, UploadFile, File, HTTPException
-from starlette import status
+from fastapi import APIRouter, Request, Form, UploadFile, File, Query
 
-from src.api.responses import base_bad_response_for_endpoints_of_task
-from src.core.schemas.tasks import ParseTasksResponse
+from src.api.responses import base_bad_response_for_endpoints_of_task, bad_responses_autocheck
+from src.core.schemas.tasks import ParseTasksResponse, CheckTaskAnswerInputSchema
 from src.core.services.tasks import TaskService
-from src.core.utils.config import settings
+from src.core.services.excel import ExcelService
 
 router = APIRouter()
 
@@ -60,106 +58,32 @@ async def create_task(
     if isinstance(file, str) and file == "":
         file = None
 
-    result = await send_task_to_moderator(task_id, user_id, value, text, file)
+    result = await TaskService.send_task_to_moderator(task_id, user_id, value, text, file)
 
     return {"status": result}
 
 
-# TODO перенести
-async def send_task_to_moderator(
-        task_id: int, user_id: int, value: str, text: Optional[str] = None, file: Optional[UploadFile] = None
+# TODO: Оставить ли Put или всё же Get, но без пайдентик схемы?
+# Переделал с Get на Put, потому что в Get запросе нельзя запрашивать pydantic схему, а в тудушке было
+# перейти на пд схему
+@router.put(
+    path="/create/autocheck",
+    tags=["Tasks"],
+    summary="Проверить ответ на задание",
+    description=
+    "Проверяет, правильно ли пользователь ответил на задание, "
+    "для проверки используется Excel-файл 'PlayIT.xlsx' (лист 'Персонажи'),"
+    "где в колонке '№' хранится ID задания, а в колонке 'Ответ' — правильный ответ.",
+    responses=bad_responses_autocheck
+)
+async def check_task_answer(
+        payload: CheckTaskAnswerInputSchema
 ):
-    """
-    Отправляет задание модератору.
+    task_id = payload.task_id
+    user_answer = payload.user_answer
+    result = ExcelService.check_answer(task_id, user_answer)
 
-    Возможные входные данные:
-    - Только текст
-    - Фото + текст
-    - Видео + текст
-    """
-
-    message = f"Новое задание от пользователя:\n\nНомер задания: {task_id}\nКоличество баллов: {value}"
-    if text:
-        message += f"\n\nТекст пользователя: {text}"
-
-    keyboard = {
-        "inline_keyboard": [
-            [{"text": "Принять", "callback_data": f"approve_{task_id}_{user_id}_{value}"}],
-            [{"text": "Отклонить", "callback_data": f"reject_{task_id}_{user_id}"}]
-        ]
+    return {
+        "task_id": task_id,
+        "is_correct": result
     }
-
-    # Определяем, какой тип файла отправлять
-    if file:
-        if "image" in file.content_type:
-            url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendPhoto"
-            file_type = "photo"
-        elif "video" in file.content_type:
-            url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendVideo"
-            file_type = "video"
-        else:
-            raise HTTPException(status_code=400, detail="Неподдерживаемый формат файла")
-
-        # Формируем данные для отправки
-        form_data = FormData()
-        form_data.add_field('chat_id', str(settings.bot.MODERATOR_CHAT_ID))
-        form_data.add_field('caption', message)
-        form_data.add_field('reply_markup', json.dumps(keyboard))
-        form_data.add_field(file_type, file.file, filename=file.filename, content_type=file.content_type)
-
-    else:
-        url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendMessage"
-
-        payload = {
-            "chat_id": str(settings.bot.MODERATOR_CHAT_ID),
-            "text": message,
-            "reply_markup": json.dumps(keyboard),
-            "parse_mode": "HTML",
-        }
-
-    # Отправка запроса
-    async with ClientSession() as session:
-        if file:
-            async with session.post(url, data=form_data) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    raise HTTPException(status_code=500, detail=f"Failed to send task to moderator: {error_text}")
-        else:
-            async with session.post(url, json=payload) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    raise HTTPException(status_code=500, detail=f"Failed to send text task to moderator: {error_text}")
-
-    return status.HTTP_200_OK
-
-
-df = pd.read_excel("PlayIT.xlsx", sheet_name="Персонажи")
-
-
-# TODO перенести
-def check_answer(task_id: int, user_answer: str) -> bool:
-    row = df[df["№"] == task_id]
-
-    if row.empty:
-        return None
-        # TODO сделать обработку
-
-    correct_answer = str(row.iloc[0]["Ответ"]).strip()
-    return correct_answer.lower() == user_answer.strip().lower()
-
-
-# @router.get(
-#     path="/create/autocheck"
-#     # TODO дозаполнить
-# )
-# async def check_task_answer(
-#         # TODO переписать на пд форму
-#         task_id: int = Query(..., description="ID задания"),
-#         user_answer: str = Query(..., description="Ответ пользователя")
-# ):
-#     result = check_answer(task_id, user_answer)
-#
-#     if result is None:
-#         raise HTTPException(status_code=404, detail="Задание не найдено")
-#
-#     return {"task_id": task_id, "is_correct": result}

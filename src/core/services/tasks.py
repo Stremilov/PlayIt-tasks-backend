@@ -11,38 +11,7 @@ from src.core.redis_client import redis_client
 logger = logging.getLogger("tasks_logger")
 
 
-
 class TaskService:
-
-    # @staticmethod
-    # def _send_task_to_moderator(user_id: int, value: int, photo: UploadFile):
-    #     url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendPhoto"
-    #     message = (f"Новое задание от пользователя:\n\n"
-    #                f"Количество баллов: {value}")
-    #
-    #     keyboard = {
-    #         "inline_keyboard": [
-    #             [{"text": "Принять", "callback_data": f"approve_{user_id}_{value}"}],
-    #             [{"text": "Отклонить", "callback_data": f"reject_{user_id}"}]
-    #         ]
-    #     }
-    #
-    #     files = {}
-    #     if photo:
-    #         files = {'photo': (photo.filename, photo.file, photo.content_type)}
-    #
-    #     data = {
-    #         "chat_id": settings.bot.MODERATOR_CHAT_ID,
-    #         "caption": message,
-    #         "reply_markup": json.dumps(keyboard)
-    #     }
-    #
-    #     try:
-    #         requests.post(url, data=data, files=files if photo else None)
-    #     except Exception as e:
-    #         raise HTTPException(status_code=500, detail=str(e))
-    #
-    #     return status.HTTP_200_OK
 
     @staticmethod
     def _get_cached_data():
@@ -115,15 +84,3 @@ class TaskService:
         logger.info("Метод get_all_tasks() завершён. Данные возвращены клиенту.")
 
         return response
-
-    # @staticmethod
-    # async def create_tasks(
-    #         user_id: int,
-    #         description: str,
-    #         value: int,
-    #         uploaded_file,
-    #         session: Session,
-    # ):
-    #     result = TaskService._send_task_to_moderator(user_id=user_id, value=value, photo=uploaded_file)
-    #     if result == status.HTTP_200_OK:
-    #         return TaskBaseResponse(status="200", message="success")

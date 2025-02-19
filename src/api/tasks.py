@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Optional
 
+import pandas as pd
 from aiohttp import ClientSession, FormData
 from fastapi import APIRouter, Request, Form, UploadFile, File, HTTPException
 from starlette import status
@@ -38,7 +39,7 @@ async def parse_all_tasks(request: Request):
 
 
 @router.post(
-    path="/create",
+    path="/create/moderation",
     tags=["Tasks"],
     summary="Создать задание",
     description="Создаёт задание и отправляет его модератору с файлом.",
@@ -59,12 +60,12 @@ async def create_task(
     if isinstance(file, str) and file == "":
         file = None
 
-    # Передаем параметры в правильном порядке
     result = await send_task_to_moderator(task_id, user_id, value, text, file)
 
     return {"status": result}
 
 
+# TODO перенести
 async def send_task_to_moderator(
         task_id: int, user_id: int, value: str, text: Optional[str] = None, file: Optional[UploadFile] = None
 ):
@@ -77,7 +78,7 @@ async def send_task_to_moderator(
     - Видео + текст
     """
 
-    message = f"Новое задание от пользователя:\n\nКоличество баллов: {value}"
+    message = f"Новое задание от пользователя:\n\nНомер задания: {task_id}\nКоличество баллов: {value}"
     if text:
         message += f"\n\nТекст пользователя: {text}"
 
@@ -102,12 +103,11 @@ async def send_task_to_moderator(
         # Формируем данные для отправки
         form_data = FormData()
         form_data.add_field('chat_id', str(settings.bot.MODERATOR_CHAT_ID))
-        form_data.add_field('caption', message)  # Описание (подпись)
+        form_data.add_field('caption', message)
         form_data.add_field('reply_markup', json.dumps(keyboard))
         form_data.add_field(file_type, file.file, filename=file.filename, content_type=file.content_type)
 
     else:
-        # Если файл отсутствует, отправляем только текст
         url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendMessage"
 
         payload = {
@@ -131,3 +131,35 @@ async def send_task_to_moderator(
                     raise HTTPException(status_code=500, detail=f"Failed to send text task to moderator: {error_text}")
 
     return status.HTTP_200_OK
+
+
+df = pd.read_excel("PlayIT.xlsx", sheet_name="Персонажи")
+
+
+# TODO перенести
+def check_answer(task_id: int, user_answer: str) -> bool:
+    row = df[df["№"] == task_id]
+
+    if row.empty:
+        return None
+        # TODO сделать обработку
+
+    correct_answer = str(row.iloc[0]["Ответ"]).strip()
+    return correct_answer.lower() == user_answer.strip().lower()
+
+
+# @router.get(
+#     path="/create/autocheck"
+#     # TODO дозаполнить
+# )
+# async def check_task_answer(
+#         # TODO переписать на пд форму
+#         task_id: int = Query(..., description="ID задания"),
+#         user_answer: str = Query(..., description="Ответ пользователя")
+# ):
+#     result = check_answer(task_id, user_answer)
+#
+#     if result is None:
+#         raise HTTPException(status_code=404, detail="Задание не найдено")
+#
+#     return {"task_id": task_id, "is_correct": result}

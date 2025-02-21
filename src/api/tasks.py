@@ -63,10 +63,7 @@ async def create_task(
     return {"status": result}
 
 
-# TODO: Оставить ли Put или всё же Get, но без пайдентик схемы?
-# Переделал с Get на Put, потому что в Get запросе нельзя запрашивать pydantic схему, а в тудушке было
-# перейти на пд схему
-@router.put(
+@router.post(
     path="/create/autocheck",
     tags=["Tasks"],
     summary="Проверить ответ на задание",
@@ -77,13 +74,12 @@ async def create_task(
     responses=bad_responses_autocheck
 )
 async def check_task_answer(
-        payload: CheckTaskAnswerInputSchema
+        data: CheckTaskAnswerInputSchema
 ):
-    task_id = payload.task_id
-    user_answer = payload.user_answer
-    result = ExcelService.check_answer(task_id, user_answer)
+    return await ExcelService.check_answer(data)
 
+    # Убрать
     return {
-        "task_id": task_id,
+        "task_id": data.task_id,
         "is_correct": result
     }

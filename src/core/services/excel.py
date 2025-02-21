@@ -1,12 +1,12 @@
 import json
 from fastapi import HTTPException, status, Request
 from pandas import read_excel, DataFrame
-from src.core.schemas.tasks import ParseTasksResponse
+from src.core.schemas.tasks import ParseTasksResponse, CheckTaskAnswerInputSchema
 
 
 class ExcelService:
     @staticmethod
-    async def parse_shop(request: Request) -> ParseTasksResponse:
+    async def parse_table(request: Request) -> ParseTasksResponse:
         """
         Парсит Excel-файл и возвращает данные в виде ParseTasksResponse.
         """
@@ -48,8 +48,9 @@ class ExcelService:
             data=formatted_json_data,
         )
 
+    # TODO заменить на метод выше
     @staticmethod
-    def load_characters() -> DataFrame:
+    async def load_characters() -> DataFrame:
         """
         Загружает лист 'Персонажи' из Excel-файла и возвращает DataFrame.
         Можно в будущем здесь добавить кэширование, проверку наличия файла и т.д.
@@ -62,23 +63,28 @@ class ExcelService:
         if df.empty:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Пустая таблица 'Персонажи' в Excel"
+                detail="Таблица <Персонажи> не найдена"
             )
         return df
 
     @staticmethod
-    def check_answer(task_id: int, user_answer: str) -> bool | None:
+    async def check_answer(data: CheckTaskAnswerInputSchema) -> bool | None:
         """
         Проверяет, совпадает ли ответ пользователя с правильным ответом из Excel-файла.
         Возвращает:
          - True, если ответ совпал;
          - False, если ответ не совпал;
         """
-        df = ExcelService.load_characters()
+        # TODO реализовать получение данных из кеша для проверки
 
-        row = df[df["№"] == task_id]
+        # TODO использовать метод parse_table
+        df = await ExcelService.load_characters()
+
+        row = df[df["№"] == data.task_id]
         if row.empty:
             raise HTTPException(status_code=404, detail="Задание не найдено")
 
         correct_answer = str(row.iloc[0]["Ответ"]).strip().lower()
-        return correct_answer == user_answer.strip().lower()
+        return correct_answer == data.user_answer.strip().lower()
+
+        # TODO сделать пд схему для возврата данных

@@ -79,7 +79,23 @@ class TaskService:
                 logger.info("Кешированные данные повреждены. Переходим к парсингу Excel.")
 
         logger.info("Парсинг Excel-файла через ExcelService.parse_shop()")
-        response = await ExcelService.parse_table(request)
+        excel_shop_df = await ExcelService.parse_table(request)
+
+        json_data = excel_shop_df.to_json(orient="records")
+
+        formatted_json_data = json.loads(json_data)
+        if not formatted_json_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ошибка при форматировании данных из таблицы",
+            )
+
+        response = ParseTasksResponse(
+            status=status.HTTP_200_OK,
+            details="Данные получены напрямую из Excel файла.",
+            data=formatted_json_data,
+        )
+
         logger.info("Данные успешно получены через ExcelService.")
 
         TaskService._cache_response(response)

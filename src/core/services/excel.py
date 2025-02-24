@@ -1,14 +1,17 @@
 import json
 from fastapi import HTTPException, status, Request
 from pandas import read_excel, DataFrame
-from src.core.schemas.tasks import ParseTasksResponse, CheckTaskAnswerInputSchema
+from src.core.schemas.tasks import (
+    CheckTaskAnswerInputSchema,
+    CheckTaskAnswerOutputSchema
+)
 
 
 class ExcelService:
     @staticmethod
-    async def parse_table(request: Request) -> ParseTasksResponse:
+    async def parse_table(request: Request) -> DataFrame:
         """
-        Парсит Excel-файл и возвращает данные в виде ParseTasksResponse.
+        Парсит Excel-файл и возвращает данные в виде DataFrame.
         """
         # user = await verify_user_by_jwt(request)
         # if not user:
@@ -26,65 +29,37 @@ class ExcelService:
             )
 
         # Чтение Excel-файла с данными листа 'Персонажи'
-        exel_shop_df = read_excel(file_path, sheet_name="Персонажи")
-        if exel_shop_df.empty:
+        excel_shop_df = read_excel(file_path, sheet_name="Персонажи")
+        if excel_shop_df.empty:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Такой таблицы не существует",
+                detail="Таблицы 'Персонажи' не существует.",
             )
 
-        json_data = exel_shop_df.to_json(orient="records")
+        return excel_shop_df
 
-        formatted_json_data = json.loads(json_data)
-        if not formatted_json_data:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Ошибка при форматировании данных из таблицы",
-            )
 
-        return ParseTasksResponse(
-            status=status.HTTP_200_OK,
-            details="Данные получены напрямую из Excel файла.",
-            data=formatted_json_data,
-        )
-
-    # TODO заменить на метод выше
-    @staticmethod
-    async def load_characters() -> DataFrame:
-        """
-        Загружает лист 'Персонажи' из Excel-файла и возвращает DataFrame.
-        Можно в будущем здесь добавить кэширование, проверку наличия файла и т.д.
-        """
-        file_path = "PlayIT.xlsx"  # или полный путь, если нужен
-
-        # TODO: Можно выгрузить в кеш редиса, чтобы каждый раз не парсить
-        df = read_excel(file_path, sheet_name="Персонажи")
-
-        if df.empty:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Таблица <Персонажи> не найдена"
-            )
-        return df
 
     @staticmethod
-    async def check_answer(data: CheckTaskAnswerInputSchema) -> bool | None:
+    async def check_answer(
+            request: Request,
+            data: CheckTaskAnswerInputSchema
+    ) -> CheckTaskAnswerOutputSchema:
         """
         Проверяет, совпадает ли ответ пользователя с правильным ответом из Excel-файла.
         Возвращает:
          - True, если ответ совпал;
          - False, если ответ не совпал;
         """
-        # TODO реализовать получение данных из кеша для проверки
-
-        # TODO использовать метод parse_table
-        df = await ExcelService.load_characters()
+        df = await ExcelService.parse_table(Request)
 
         row = df[df["№"] == data.task_id]
         if row.empty:
             raise HTTPException(status_code=404, detail="Задание не найдено")
-
         correct_answer = str(row.iloc[0]["Ответ"]).strip().lower()
-        return correct_answer == data.user_answer.strip().lower()
+        result = correct_answer == data.user_answer.strip().lower()
 
-        # TODO сделать пд схему для возврата данных
+        return CheckTaskAnswerOutputSchema(
+            task_id=data.task_id,
+            is_correct=result
+        )

@@ -74,12 +74,7 @@ async def create_task(
     responses=bad_responses_autocheck
 )
 async def check_task_answer(
+        request: Request,
         data: CheckTaskAnswerInputSchema
 ):
-    return await ExcelService.check_answer(data)
-
-    # Убрать
-    return {
-        "task_id": data.task_id,
-        "is_correct": result
-    }
+    return await ExcelService.check_answer(request, data)

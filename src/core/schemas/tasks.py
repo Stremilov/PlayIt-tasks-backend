@@ -2,6 +2,7 @@ import enum
 
 from fastapi import Form, UploadFile, File
 from pydantic import BaseModel, Field
+from sqlalchemy import Boolean
 
 
 class ParseTasksResponse(BaseModel):
@@ -35,3 +36,7 @@ class TaskSchema(BaseModel):
 class CheckTaskAnswerInputSchema(BaseModel):
     task_id: int = Field(..., description="ID задания")
     user_answer: str = Field(..., description="Ответ пользователя")
+
+class CheckTaskAnswerOutputSchema(BaseModel):
+    task_id: int
+    is_correct: bool # True или False выдаст

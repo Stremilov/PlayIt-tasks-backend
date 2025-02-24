@@ -51,6 +51,7 @@ class ExcelService:
          - True, если ответ совпал;
          - False, если ответ не совпал;
         """
+        # TODO: Закешировать
         df = await ExcelService.parse_table(Request)
 
         row = df[df["№"] == data.task_id]

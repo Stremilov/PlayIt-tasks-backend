@@ -15,6 +15,7 @@ logger = logging.getLogger("tasks_logger")
 
 class TaskService:
 
+    # TODO: Перенести логику кеша в отдельный сервис /src/core/services/cache.py (тут редис будет)
     @staticmethod
     def _get_cached_data():
         try:

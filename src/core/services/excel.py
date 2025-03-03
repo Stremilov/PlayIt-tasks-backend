@@ -38,8 +38,6 @@ class ExcelService:
 
         return excel_shop_df
 
-
-
     @staticmethod
     async def check_answer(
             request: Request,
@@ -59,6 +57,20 @@ class ExcelService:
             raise HTTPException(status_code=404, detail="Задание не найдено")
         correct_answer = str(row.iloc[0]["Ответ"]).strip().lower()
         result = correct_answer == data.user_answer.strip().lower()
+
+        # TODO если ответ правильный, то сделать запрос с помощью aiohttp на ручку
+        #  it-otdel.space/playit/auth/users/balance с patch запросом
+
+        # Если нужна документация, то она находтся по адресу it-otdel.space/playit/auth/docs
+
+        # Структура входных данных ниже
+        # Если ответ пользователя правильный, то status передать "approved"
+
+        # class UpdateUserBalanceData(BaseModel):
+        #     task_id: int
+        #     user_id: int
+        #     value: int
+        #     status: str
 
         return CheckTaskAnswerOutputSchema(
             task_id=data.task_id,

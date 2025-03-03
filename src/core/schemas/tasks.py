@@ -36,6 +36,8 @@ class TaskSchema(BaseModel):
 class CheckTaskAnswerInputSchema(BaseModel):
     task_id: int = Field(..., description="ID задания")
     user_answer: str = Field(..., description="Ответ пользователя")
+    # TODO добавить поля user_id: int, value: int
+
 
 class CheckTaskAnswerOutputSchema(BaseModel):
     task_id: int

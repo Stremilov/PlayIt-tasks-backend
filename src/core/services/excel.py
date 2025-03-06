@@ -36,6 +36,9 @@ class ExcelService:
                 detail="Таблицы 'Персонажи' не существует.",
             )
 
+        columns_to_drop = ["Ответ", "Аватарка"]
+        excel_shop_df = excel_shop_df.drop(columns=[col for col in columns_to_drop if col in excel_shop_df.columns])
+
         return excel_shop_df
 
     @staticmethod
@@ -50,7 +53,7 @@ class ExcelService:
          - False, если ответ не совпал;
         """
         # TODO: Закешировать
-        df = await ExcelService.parse_table(Request)
+        df = await ExcelService.parse_table(request)
 
         row = df[df["№"] == data.task_id]
         if row.empty:

@@ -1,24 +1,21 @@
 import json
+import logging
+
 from fastapi import HTTPException, status, Request
 from pandas import read_excel, DataFrame
 from src.core.schemas.tasks import (
     CheckTaskAnswerInputSchema,
-    CheckTaskAnswerOutputSchema
+    CheckTaskAnswerOutputSchema,
+    UpdateUserBalanceData
 )
+from src.core.services.aiohttp_client import AiohtppClientService
+from pprint import pprint
 
+logger = logging.getLogger("excel_logger")
 
 class ExcelService:
     @staticmethod
-    async def parse_table(request: Request) -> DataFrame:
-        """
-        Парсит Excel-файл и возвращает данные в виде DataFrame.
-        """
-        # user = await verify_user_by_jwt(request)
-        # if not user:
-        #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
-
-        # file_path = os.path.join("data", "PlayIT")
-
+    async def _parse_excel(columns_to_drop: list) -> DataFrame:
         file_path = "PlayIT.xlsx"
 
         # Проверка, что файл имеет корректное расширение
@@ -35,10 +32,22 @@ class ExcelService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Таблицы 'Персонажи' не существует.",
             )
+        if columns_to_drop: # Если есть колонки для удаления, то удаляем их
+            excel_shop_df = excel_shop_df.drop(columns=[col for col in columns_to_drop if col in excel_shop_df.columns])
+        return excel_shop_df
 
-        columns_to_drop = ["Ответ", "Аватарка"]
-        excel_shop_df = excel_shop_df.drop(columns=[col for col in columns_to_drop if col in excel_shop_df.columns])
+    @staticmethod
+    async def parse_table(request: Request) -> DataFrame:
+        """
+        Парсит Excel-файл и возвращает данные в виде DataFrame.
+        """
+        # user = await verify_user_by_jwt(request)
+        # if not user:
+        #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
 
+        # file_path = os.path.join("data", "PlayIT")
+
+        excel_shop_df = await ExcelService._parse_excel(columns_to_drop=["Ответ", "Аватарка"])
         return excel_shop_df
 
     @staticmethod
@@ -48,34 +57,35 @@ class ExcelService:
     ) -> CheckTaskAnswerOutputSchema:
         """
         Проверяет, совпадает ли ответ пользователя с правильным ответом из Excel-файла.
-        Возвращает:
          - True, если ответ совпал;
          - False, если ответ не совпал;
+        Затем, если ответ правильный, то отправляет запрос с помощью aiohttp на ручку пополнения баланса.
         """
-        # TODO: Закешировать
-        df = await ExcelService.parse_table(request)
+        # TODO: закэшировать
+        try:
+            excel_shop_df = await ExcelService._parse_excel(columns_to_drop=["Аватарка"])
 
-        row = df[df["№"] == data.task_id]
-        if row.empty:
-            raise HTTPException(status_code=404, detail="Задание не найдено")
-        correct_answer = str(row.iloc[0]["Ответ"]).strip().lower()
-        result = correct_answer == data.user_answer.strip().lower()
+            row = excel_shop_df[excel_shop_df["№"] == data.task_id]
+            if row.empty:
+                raise HTTPException(status_code=404, detail="Задание не найдено")
 
-        # TODO если ответ правильный, то сделать запрос с помощью aiohttp на ручку
-        #  it-otdel.space/playit/auth/users/balance с patch запросом
+            correct_answer = str(row.iloc[0]["Ответ"]).strip().lower()
+            result = correct_answer == data.user_answer.strip().lower()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"{str(e)}")
 
-        # Если нужна документация, то она находтся по адресу it-otdel.space/playit/auth/docs
-
-        # Структура входных данных ниже
-        # Если ответ пользователя правильный, то status передать "approved"
-
-        # class UpdateUserBalanceData(BaseModel):
-        #     task_id: int
-        #     user_id: int
-        #     value: int
-        #     status: str
+        if result:
+            # Если ответ правильный, формируем данные для обновления баланса.
+            balance_data = UpdateUserBalanceData(
+                task_id=data.task_id,
+                user_id=data.user_id,
+                value=data.value,
+                status="approved"
+            )
+            await AiohtppClientService.update_user_balance(balance_data)
 
         return CheckTaskAnswerOutputSchema(
             task_id=data.task_id,
             is_correct=result
         )
+

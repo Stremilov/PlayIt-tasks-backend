@@ -15,52 +15,49 @@ logger = logging.getLogger("tasks_logger")
 
 class TaskService:
     @staticmethod
-    async def get_all_tasks(request: Request) -> ParseTasksResponse:
-        """
-        Получает все задания с кешированием:
-         1. Пытается получить данные из Redis по ключу 'tasks:all'.
-         2. Если данные есть и корректны, возвращает их.
-         3. Если кеш пуст или данные повреждены, парсит Excel через ExcelService.parse_shop.
-         4. Сохраняет полученные данные в Redis с TTL 6 часов (21600 секунд).
-        """
-        logger.info("Запущен метод get_all_tasks()")
-        cached_data = CacheService.get_cached_data()
+    async def get_all_tasks(request: Request, day: int | None = None) -> ParseTasksResponse:
+        logger.info(f"Запущен метод get_all_tasks(), day={day}")
 
-        if cached_data:
-            parsed_data = CacheService.parse_cached_data(cached_data)
-            if parsed_data:
-                logger.info("Данные получены из кеша и успешно десериализованы.")
-                return ParseTasksResponse(
-                    status=status.HTTP_200_OK,
-                    details="Данные получены из кеша.",
-                    data=parsed_data,
-                )
-            else:
-                logger.info("Кешированные данные повреждены. Переходим к парсингу Excel.")
+        # Пытаемся получить данные из кеша
+        cached_data = CacheService.get_accumulated_data(day)
 
-        logger.info("Парсинг Excel-файла через ExcelService.parse_shop()")
-        excel_shop_df = await ExcelService.parse_table(request)
+        if cached_data is not None:
+            logger.info(f"Данные {'за все дни' if day is None else f'за дни 1-{day}'} получены из кеша.")
+            return ParseTasksResponse(
+                status=status.HTTP_200_OK,
+                details=f"Данные {'за все дни' if day is None else f'за дни 1-{day}'} получены из кеша.",
+                data=cached_data,
+            )
 
+        # Если в кеше нет данных, парсим Excel
+        logger.info(f"Парсинг Excel-файла через ExcelService.parse_table(day={day})")
+        excel_shop_df = await ExcelService.parse_table(request, day)
+
+        # Преобразуем в JSON
         json_data = excel_shop_df.to_json(orient="records")
-
         formatted_json_data = json.loads(json_data)
+
         if not formatted_json_data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Ошибка при форматировании данных из таблицы",
             )
 
+        # Разделяем данные по дням и кешируем каждый день отдельно
+        if 'Номер дня' in excel_shop_df.columns:
+            for day_num in range(1, 4): # От 1 до 3 дней
+                day_data = excel_shop_df[excel_shop_df['Номер дня'] == day_num]
+                day_json = day_data.to_json(orient="records")
+                CacheService.cache_day_data(day_num, json.loads(day_json))
+
+
         response = ParseTasksResponse(
             status=status.HTTP_200_OK,
-            details="Данные получены напрямую из Excel файла.",
+            details="Данные успешно получены из Excel файла.",
             data=formatted_json_data,
         )
 
-        logger.info("Данные успешно получены через ExcelService.")
-
-        CacheService.cache_response(response)
         logger.info("Метод get_all_tasks() завершён. Данные возвращены клиенту.")
-
         return response
 
     @staticmethod

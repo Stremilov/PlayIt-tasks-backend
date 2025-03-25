@@ -15,7 +15,7 @@ logger = logging.getLogger("excel_logger")
 
 class ExcelService:
     @staticmethod
-    async def _parse_excel(columns_to_drop: list) -> DataFrame:
+    async def _parse_excel(columns_to_drop: list, max_day: int | None) -> DataFrame:
         file_path = "PlayIT.xlsx"
 
         # Проверка, что файл имеет корректное расширение
@@ -32,12 +32,22 @@ class ExcelService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Таблицы 'Персонажи' не существует.",
             )
+
+        if max_day is not None: # Проверка передали ли день?
+            if "Номер дня" not in excel_shop_df.columns:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="В таблице не существует колонки 'Номер дня'."
+                )
+
+            excel_shop_df = excel_shop_df[excel_shop_df["Номер дня"] <= max_day] # Фильтруем до максимального дня
+
         if columns_to_drop: # Если есть колонки для удаления, то удаляем их
             excel_shop_df = excel_shop_df.drop(columns=[col for col in columns_to_drop if col in excel_shop_df.columns])
         return excel_shop_df
 
     @staticmethod
-    async def parse_table(request: Request) -> DataFrame:
+    async def parse_table(request: Request, day: int | None) -> DataFrame:
         """
         Парсит Excel-файл и возвращает данные в виде DataFrame.
         """
@@ -47,7 +57,7 @@ class ExcelService:
 
         # file_path = os.path.join("data", "PlayIT")
 
-        excel_shop_df = await ExcelService._parse_excel(columns_to_drop=["Ответ", "Аватарка"])
+        excel_shop_df = await ExcelService._parse_excel(columns_to_drop=["Ответ", "Аватарка"], max_day=day)
         return excel_shop_df
 
     @staticmethod

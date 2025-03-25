@@ -17,23 +17,33 @@ router = APIRouter()
     path="/get-all",
     response_model=ParseTasksResponse,
     tags=["Tasks"],
-    summary="Возвращает все возможные задания",
+    summary="Возвращает возможные задания",
     description="""
-    Возвращает все задания из таблицы
+    Возвращает все задания из таблицы либо задания по дням с помощью 'day' 
 
-    - Аутентифицирует пользоватея по JWT;
+    - Аутентифицирует пользователя по JWT;
     - При первом запросе данные парсятся из Excel и сохраняются в Redis;
     - При последующих запросах данные получаются из кеша.
+    - Если day не указан, то вернутся все задания
+    - Если day > 3, возвращается ошибка 400.
     """,
 )
-async def parse_all_tasks(request: Request):
+async def parse_all_tasks(
+        request: Request,
+        day: int | None = Query(
+            None,
+            description="День, за который нужно получить задания",
+        ge=1, # Минимальное значение
+        le=3  # Максимальное значение
+        )
+):
     """
     Эндпоинт для получения всех заданий.
     Сначала пытается вернуть данные из кеша.
     Если кеш пуст или данные невалидны, вызывается ExcelService для парсинга Excel,
     а результат сохраняется в Redis с TTL 6 часов.
     """
-    return await TaskService.get_all_tasks(request)
+    return await TaskService.get_all_tasks(request, day)
 
 
 @router.post(

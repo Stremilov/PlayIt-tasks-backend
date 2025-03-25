@@ -61,7 +61,7 @@ class RedisSettings(BaseModel):
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
     REDIS_DB: int = int(os.getenv("REDIS_DB", 0))
-    CACHE_KEY: str = os.getenv("CACHE_KEY", "tasks:all")  # Ключ для хранения данных кеша
+    CACHE_KEY_TEMPLATE: str = os.getenv("CACHE_KEY_TEMPLATE", "tasks:day:{day}")  # Ключ для хранения данных кеша для дня
     CACHE_EXPIRE: int = int(os.getenv("CACHE_EXPIRE", 21600))  # Время жизни кеша: 6 часов = 6 * 3600 секунд
 
 

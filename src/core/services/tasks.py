@@ -62,7 +62,7 @@ class TaskService:
 
     @staticmethod
     async def send_task_to_moderator(
-            task_id: int, user_id: int, value: str, text: Optional[str] = None, file: Optional[UploadFile] = None
+            task_id: int, user_id: int, value: int, text: Optional[str] = None, file: Optional[UploadFile] = None
     ):
         """
         Отправляет задание модератору.

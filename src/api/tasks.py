@@ -56,7 +56,7 @@ async def parse_all_tasks(
 async def create_task(
         task_id: int = Form(..., description="ID задания"),
         user_id: int = Form(..., description="ID пользователя"),
-        value: str = Form(..., description="Количество баллов"),
+        value: int = Form(..., description="Количество баллов"),
         text: Optional[str] = Form(default=None, description="Текст выполненного задания"),
         file: Optional[UploadFile] = File(default=None, description="Файл для задания")
 ):

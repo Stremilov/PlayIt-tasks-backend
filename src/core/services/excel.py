@@ -73,7 +73,7 @@ class ExcelService:
         """
         # TODO: закэшировать
         try:
-            excel_shop_df = await ExcelService._parse_excel(columns_to_drop=["Аватарка"])
+            excel_shop_df = await ExcelService._parse_excel(columns_to_drop=["Аватарка"], max_day=None)
 
             row = excel_shop_df[excel_shop_df["№"] == data.task_id]
             if row.empty:

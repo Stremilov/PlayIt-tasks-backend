@@ -1,72 +1,23 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import insert, select, update
 from typing import Optional
 
-from src.models.models import Users
-from src.schemas.users import UserSchema, UpdatePersonalDataSchema
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 
 class UserRepository:
     @staticmethod
-    def create_user(session: Session, data: dict) -> UserSchema:
-        statement = insert(Users).values(**data).returning(Users)
-        result = session.execute(statement)
-        session.commit()
+    def get_user_by_username(session: Session, username: str) -> Optional[tuple]:
+        stmt = text("""
+            SELECT *
+            from users
+            where username = :username
+            """)
 
-        created_user = result.scalars().first()
-        new_user = created_user.to_read_model()
-        return new_user
-
-    @staticmethod
-    def get_user_by_username(session: Session, username: str) -> Optional[UserSchema]:
-        statement = select(Users).filter_by(username=username)
-        result = session.execute(statement)
-
+        result = session.execute(stmt, {"username": username})
+        # Достаём теперь не кортеж, а именно int - число коинов пользователя
         user = result.scalar_one_or_none()
         if not user:
             return None
-        return user.to_read_model()
 
-    @staticmethod
-    def update_user_balance(session: Session, username: str, value: int):
-        statement = (
-            update(Users)
-            .where(Users.username == username)
-            .values(balance=Users.balance + value)
-        )
-        session.execute(statement)
-        session.commit()
-
-        statement = select(Users).filter_by(username=username)
-        result = session.execute(statement)
-        user = result.scalar_one_or_none()
-
-        if not user:
-            return None
-        return user.to_read_model()
-
-    @staticmethod
-    def update_user_personal_data(
-        session: Session, username: str, new_data: UpdatePersonalDataSchema
-    ):
-        update_values = {}
-
-        if new_data.full_name is not None and new_data.full_name != "":
-            update_values["full_name"] = new_data.full_name
-
-        if new_data.group_number is not None and new_data.group_number != "":
-            update_values["group_number"] = new_data.group_number
-
-        statement = (
-            update(Users).where(Users.username == username).values(**update_values)
-        )
-        session.execute(statement)
-        session.commit()
-
-        statement = select(Users).filter_by(username=username)
-        result = session.execute(statement)
-        user = result.scalar_one_or_none()
-
-        if not user:
-            return None
-        return user.to_read_model()
+        return user # Возвращаем первый элемент кортежа (balance) или 0, если пользователь не найден

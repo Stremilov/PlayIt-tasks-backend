@@ -3,13 +3,15 @@ import logging
 
 from fastapi import HTTPException, status, Request
 from pandas import read_excel, DataFrame
+from sqlalchemy.orm import Session
+
 from src.core.schemas.tasks import (
     CheckTaskAnswerInputSchema,
     CheckTaskAnswerOutputSchema,
     UpdateUserBalanceData
 )
 from src.core.services.aiohttp_client import AiohtppClientService
-from pprint import pprint
+from src.core.utils.auth import verify_user_by_jwt
 
 logger = logging.getLogger("excel_logger")
 
@@ -63,6 +65,7 @@ class ExcelService:
     @staticmethod
     async def check_answer(
             request: Request,
+            session: Session,
             data: CheckTaskAnswerInputSchema
     ) -> CheckTaskAnswerOutputSchema:
         """
@@ -71,6 +74,10 @@ class ExcelService:
          - False, если ответ не совпал;
         Затем, если ответ правильный, то отправляет запрос с помощью aiohttp на ручку пополнения баланса.
         """
+        logger.info(f"Запущена проверка jwt-токена в get_all_tasks")
+        await verify_user_by_jwt(request=request, session=session)
+        logger.info(f"JWT-токен успешно проверен")
+
         # TODO: закэшировать
         try:
             excel_shop_df = await ExcelService._parse_excel(columns_to_drop=["Аватарка"], max_day=None)

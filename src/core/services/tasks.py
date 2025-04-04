@@ -4,19 +4,28 @@ from typing import Optional
 
 from aiohttp import FormData, ClientSession
 from fastapi import status, Request, UploadFile, HTTPException
+from sqlalchemy.orm import Session
 
 from src.core.utils.config import settings
 from src.core.schemas.tasks import ParseTasksResponse
 from src.core.services.excel import ExcelService
 from src.core.services.cache import CacheService
+from src.core.utils.auth import verify_user_by_jwt
 
 logger = logging.getLogger("tasks_logger")
 
 
 class TaskService:
     @staticmethod
-    async def get_all_tasks(request: Request, day: int | None = None) -> ParseTasksResponse:
+    async def get_all_tasks(
+            request: Request,
+            session: Session,
+            day: int | None = None) -> ParseTasksResponse:
         logger.info(f"Запущен метод get_all_tasks(), day={day}")
+
+        logger.info(f"Запущена проверка jwt-токена в get_all_tasks")
+        await verify_user_by_jwt(request=request, session=session)
+        logger.info(f"JWT-токен успешно проверен")
 
         # Пытаемся получить данные из кеша
         cached_data = CacheService.get_accumulated_data(day)
@@ -62,7 +71,13 @@ class TaskService:
 
     @staticmethod
     async def send_task_to_moderator(
-            task_id: int, user_id: int, value: int, text: Optional[str] = None, file: Optional[UploadFile] = None
+            request: Request,
+            session: Session,
+            task_id: int,
+            user_id: int,
+            value: int,
+            text: Optional[str] = None,
+            file: Optional[UploadFile] = None
     ):
         """
         Отправляет задание модератору.
@@ -72,6 +87,9 @@ class TaskService:
         - Фото + текст
         - Видео + текст
         """
+        logger.info(f"Запущена проверка jwt-токена в send_task_to_moderator")
+        await verify_user_by_jwt(request=request, session=session)
+        logger.info(f"JWT-токен успешно проверен")
 
         message = f"Новое задание от пользователя:\n\nКоличество баллов: {value}"
         if text:

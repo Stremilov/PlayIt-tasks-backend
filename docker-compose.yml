@@ -15,6 +15,8 @@ services:
       driver: loki
       options:
         loki-url: http://localhost:3100/loki/api/v1/push
+    env_file:
+      - .env
 
   redis:
     image: redis:7

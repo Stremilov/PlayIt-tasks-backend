@@ -99,7 +99,7 @@ class ExcelService:
                 value=data.value,
                 status="approved"
             )
-            await AiohtppClientService.update_user_balance(balance_data)
+            await AiohtppClientService.update_user_balance(balance_data, request)
 
         return CheckTaskAnswerOutputSchema(
             task_id=data.task_id,

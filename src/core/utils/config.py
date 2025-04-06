@@ -25,7 +25,7 @@ class LoggingSettings(BaseModel):
         "warning",
         "error",
         "critical",
-    ] = "info"
+    ] = "debug"
     log_format: str = LOG_DEFAULT_FORMAT
 
     @property

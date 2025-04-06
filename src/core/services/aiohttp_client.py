@@ -18,6 +18,8 @@ class AiohtppClientService:
         try:
             async with aiohttp.ClientSession() as session:
                 logger.debug("Заход в контекстный менеджер отправки PATCH запроса в методе send_patch_request")
+                logger.debug(url)
+                logger.debug(payload)
                 async with session.patch(url, json=payload) as response:
                     if response.status != 200:
                         error_text = await response.text()

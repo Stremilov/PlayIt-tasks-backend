@@ -30,6 +30,6 @@ class AiohtppClientService:
     @staticmethod
     async def update_user_balance(data: UpdateUserBalanceData) -> dict:
         logger.debug("Заход в метод update_user_balance")
-        endpoint = "users/balance"
+        endpoint = "/users/balance"
         payload = data.model_dump()
         return await AiohtppClientService.send_patch_request(endpoint, payload)

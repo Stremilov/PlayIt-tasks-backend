@@ -1,14 +1,15 @@
-import json
-import logging
 from typing import Optional
+import logging
 
-import pandas as pd
-from fastapi import APIRouter, Request, Form, UploadFile, File, Query
+from fastapi import APIRouter, Request, Form, UploadFile, File, Query, Depends
+from sqlalchemy.orm import Session
 
 from src.api.responses import base_bad_response_for_endpoints_of_task, bad_responses_autocheck
 from src.core.schemas.tasks import ParseTasksResponse, CheckTaskAnswerInputSchema
 from src.core.services.tasks import TaskService
 from src.core.services.excel import ExcelService
+from src.core.database.db import get_db_session
+
 
 router = APIRouter()
 
@@ -30,6 +31,7 @@ router = APIRouter()
 )
 async def parse_all_tasks(
         request: Request,
+        session: Session = Depends(get_db_session),
         day: int | None = Query(
             None,
             description="День, за который нужно получить задания",
@@ -43,7 +45,7 @@ async def parse_all_tasks(
     Если кеш пуст или данные невалидны, вызывается ExcelService для парсинга Excel,
     а результат сохраняется в Redis с TTL 6 часов.
     """
-    return await TaskService.get_all_tasks(request, day)
+    return await TaskService.get_all_tasks(request=request, session=session, day=day)
 
 
 @router.post(
@@ -54,9 +56,11 @@ async def parse_all_tasks(
     responses=base_bad_response_for_endpoints_of_task
 )
 async def create_task(
+        request: Request,
+        session: Session = Depends(get_db_session),
         task_id: int = Form(..., description="ID задания"),
         user_id: int = Form(..., description="ID пользователя"),
-        value: str = Form(..., description="Количество баллов"),
+        value: int = Form(..., description="Количество баллов"),
         text: Optional[str] = Form(default=None, description="Текст выполненного задания"),
         file: Optional[UploadFile] = File(default=None, description="Файл для задания")
 ):
@@ -68,7 +72,15 @@ async def create_task(
     if isinstance(file, str) and file == "":
         file = None
 
-    result = await TaskService.send_task_to_moderator(task_id, user_id, value, text, file)
+    result = await TaskService.send_task_to_moderator(
+        request=request,
+        session=session,
+        task_id=task_id,
+        user_id=user_id,
+        value=value,
+        text=text,
+        file=file
+    )
 
     return {"status": result}
 
@@ -85,6 +97,7 @@ async def create_task(
 )
 async def check_task_answer(
         request: Request,
-        data: CheckTaskAnswerInputSchema
+        data: CheckTaskAnswerInputSchema,
+        session: Session = Depends(get_db_session)
 ):
-    return await ExcelService.check_answer(request, data)
+    return await ExcelService.check_answer(session=session, request=request, data=data)

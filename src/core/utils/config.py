@@ -26,6 +26,7 @@ class LoggingSettings(BaseModel):
         "error",
         "critical",
     ] = "debug"
+
     log_format: str = LOG_DEFAULT_FORMAT
 
     @property

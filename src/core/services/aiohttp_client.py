@@ -21,6 +21,8 @@ class AiohtppClientService:
                 logger.debug(url)
                 logger.debug(payload)
                 async with session.patch(url, json=payload) as response:
+                    logger.debug(f"Отправка запроса на {url} с данными {payload}")
+                    logger.debug(f"Ответ от сервера: {response.status}")
                     if response.status != 200:
                         error_text = await response.text()
                         raise HTTPException(status_code=response.status, detail=error_text)

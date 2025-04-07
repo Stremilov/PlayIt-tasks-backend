@@ -97,7 +97,8 @@ class ExcelService:
                 task_id=data.task_id,
                 user_id=data.user_id,
                 value=data.value,
-                status="approved"
+                status="approved",
+                tg=True
             )
             await AiohtppClientService.update_user_balance(balance_data, request)
 

@@ -49,3 +49,4 @@ class UpdateUserBalanceData(BaseModel):
     user_id: int
     value: int
     status: str
+    tg: bool

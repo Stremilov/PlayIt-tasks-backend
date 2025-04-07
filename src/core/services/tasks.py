@@ -91,13 +91,15 @@ class TaskService:
         await verify_user_by_jwt(request=request, session=session)
         logger.info(f"JWT-токен успешно проверен")
 
+        token = request.cookies.get("jwt-token")
+
         message = f"Новое задание от пользователя:\n\nКоличество баллов: {value}"
         if text:
             message += f"\n\nТекст пользователя: {text}"
 
         keyboard = {
             "inline_keyboard": [
-                [{"text": "Принять", "callback_data": f"approve_{task_id}_{user_id}_{value}"}],
+                [{"text": "Принять", "callback_data": f"approve_{task_id}_{user_id}_{value}_{token}"}],
                 [{"text": "Отклонить", "callback_data": f"reject_{task_id}_{user_id}"}]
             ]
         }
@@ -130,6 +132,7 @@ class TaskService:
                 "reply_markup": json.dumps(keyboard),
                 "parse_mode": "HTML",
             }
+
 
         # Отправка запроса
         async with ClientSession() as session:

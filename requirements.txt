@@ -10,3 +10,4 @@ python-multipart
 openpyxl
 aiohttp
 fastapi_users
+pillow

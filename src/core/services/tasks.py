@@ -91,7 +91,11 @@ class TaskService:
         await verify_user_by_jwt(request=request, session=session)
         logger.info(f"JWT-токен успешно проверен")
 
-        message = f"📎 Задание #{task_id}\n\n💲 Количество баллов: {value}"
+        answers = {
+            1: "https://t.me/c/2621459328/2"
+        }
+
+        message = f"📎 Задание №{task_id}\n\n💲 Количество баллов: {value}\n\n Ответ: {answers[task_id]}"
         if text and text.strip():
             message += f"\n\n🖋 Текст пользователя: {text}"
 

@@ -91,8 +91,8 @@ class TaskService:
         await verify_user_by_jwt(request=request, session=session)
         logger.info(f"JWT-токен успешно проверен")
 
-        message = f"Новое задание от пользователя:\n\nКоличество баллов: {value}"
-        if text:
+        message = f"Новое задание от пользователя под номером {task_id}\n\nКоличество баллов: {value}"
+        if text != "":
             message += f"\n\nТекст пользователя: {text}"
 
         keyboard = {

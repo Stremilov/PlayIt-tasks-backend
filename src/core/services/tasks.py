@@ -1,8 +1,6 @@
 import json
 import logging
-import tempfile
 from typing import Optional
-from PIL import Image
 
 from aiohttp import FormData, ClientSession
 from fastapi import status, Request, UploadFile, HTTPException
@@ -81,6 +79,14 @@ class TaskService:
             text: Optional[str] = None,
             file: Optional[UploadFile] = None
     ):
+        """
+        Отправляет задание модератору.
+
+        Возможные входные данные:
+        - Только текст
+        - Фото + текст
+        - Видео + текст
+        """
         logger.info(f"Запущена проверка jwt-токена в send_task_to_moderator")
         await verify_user_by_jwt(request=request, session=session)
         logger.info(f"JWT-токен успешно проверен")
@@ -96,49 +102,30 @@ class TaskService:
             ]
         }
 
+        # Определяем, какой тип файла отправлять
         if file:
-            content_type = file.content_type
-            file_type = None
-            url = None
-
-            # Конвертация изображений в PNG, если необходимо
-            if "image" in content_type:
-                image = Image.open(file.file)
-                image.thumbnail((1600, 1600), Image.ANTIALIAS)
-                temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-                image.save(temp_file, format="PNG", optimize=True)
-                temp_file.seek(0)
-                file_to_send = temp_file
-                file_type = "photo"
+            # jpeg - норм
+            if "image" in file.content_type:
                 url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendPhoto"
-            elif "video" in content_type:
-                temp_file = tempfile.NamedTemporaryFile(delete=False)
-                temp_file.write(await file.read())
-                temp_file.seek(0)
-                file_to_send = temp_file
-                file_type = "video"
+                file_type = "photo"
+            elif "video" in file.content_type:
                 url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendVideo"
+                file_type = "video"
             else:
-                logger.warning(f"Неподдерживаемый формат файла {content_type}")
+                logging.warning(f"Неподдерживаемый формат файла {file.content_type}")
                 raise HTTPException(status_code=400, detail="Неподдерживаемый формат файла")
 
-            temp_file.seek(0, 2)
-            size_in_mb = temp_file.tell() / 1024 / 1024
-            temp_file.seek(0)
-
-            if size_in_mb > 10 and file_type == "photo":
-                raise HTTPException(status_code=413, detail="Файл изображения слишком большой (максимум 10MB)")
-
+            # Формируем данные для отправки
             form_data = FormData()
             form_data.add_field('chat_id', str(settings.bot.MODERATOR_CHAT_ID))
-            form_data.add_field('caption', message)
+            form_data.add_field('caption', message)  # Описание (подпись)
             form_data.add_field('reply_markup', json.dumps(keyboard))
-            form_data.add_field(file_type, file_to_send,
-                                filename="converted.png" if file_type == "photo" else file.filename,
-                                content_type="image/png" if file_type == "photo" else content_type)
+            form_data.add_field(file_type, file.file, filename=file.filename, content_type=file.content_type)
 
         else:
+            # Если файл отсутствует, отправляем только текст
             url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendMessage"
+
             payload = {
                 "chat_id": str(settings.bot.MODERATOR_CHAT_ID),
                 "text": message,
@@ -146,6 +133,8 @@ class TaskService:
                 "parse_mode": "HTML",
             }
 
+
+        # Отправка запроса
         async with ClientSession() as session:
             if file:
                 async with session.post(url, data=form_data) as response:

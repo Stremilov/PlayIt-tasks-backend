@@ -91,9 +91,9 @@ class TaskService:
         await verify_user_by_jwt(request=request, session=session)
         logger.info(f"JWT-токен успешно проверен")
 
-        message = f"Задание № {task_id}\n\nКоличество баллов: {value}"
+        message = f"<b>Задание № {task_id}</b>\n\n<b>Количество баллов: {value}</b>"
         if text and text.strip():
-            message += f"\n\nТекст пользователя: {text}"
+            message += f"\n\n<b>Текст пользователя: {text}</b>"
 
         keyboard = {
             "inline_keyboard": [

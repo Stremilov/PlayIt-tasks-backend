@@ -92,10 +92,10 @@ class TaskService:
         logger.info(f"JWT-токен успешно проверен")
 
         answers = {
-            1: "https://t.me/c/2621459328/2"
+            6: "https://t.me/c/2621459328/2"
         }
 
-        message = f"📎 Задание №{task_id}\n\n💲 Количество баллов: {value}\n\n Ответ: {answers[task_id]}"
+        message = f"📎 Задание №{task_id}\n\n💲 Количество баллов: {value}\n\n Ответ: {answers[6]}"
         if text and text.strip():
             message += f"\n\n🖋 Текст пользователя: {text}"
 

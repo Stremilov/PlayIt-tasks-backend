@@ -104,6 +104,7 @@ class TaskService:
 
         # Определяем, какой тип файла отправлять
         if file:
+            # jpeg - норм
             if "image" in file.content_type:
                 url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendPhoto"
                 file_type = "photo"
@@ -111,6 +112,7 @@ class TaskService:
                 url = f"https://api.telegram.org/bot{settings.bot.TELEGRAM_BOT_TOKEN}/sendVideo"
                 file_type = "video"
             else:
+                logging.warning(f"Неподдерживаемый формат файла {file.content_type}")
                 raise HTTPException(status_code=400, detail="Неподдерживаемый формат файла")
 
             # Формируем данные для отправки

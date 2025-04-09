@@ -6,6 +6,8 @@ from aiohttp import FormData, ClientSession
 from fastapi import status, Request, UploadFile, HTTPException
 from sqlalchemy.orm import Session
 
+from src.core.jwt.tokens import verify_jwt_token
+from src.core.repositories.users import UserRepository
 from src.core.utils.config import settings
 from src.core.schemas.tasks import ParseTasksResponse
 from src.core.services.excel import ExcelService
@@ -91,6 +93,10 @@ class TaskService:
         await verify_user_by_jwt(request=request, session=session)
         logger.info(f"JWT-токен успешно проверен")
 
+        token = request.cookies.get("jwt-token")
+        verified_token = verify_jwt_token(token)
+        username = verified_token.get("sub")
+
         answers = {
             6: "https://t.me/c/2621459328/2"
         }
@@ -139,17 +145,19 @@ class TaskService:
 
 
         # Отправка запроса
-        async with ClientSession() as session:
+        async with ClientSession() as client_session:
             if file:
-                async with session.post(url, data=form_data) as response:
+                async with client_session.post(url, data=form_data) as response:
                     if response.status != 200:
                         error_text = await response.text()
                         raise HTTPException(status_code=500, detail=f"Failed to send task to moderator: {error_text}")
             else:
-                async with session.post(url, json=payload) as response:
+                async with client_session.post(url, json=payload) as response:
                     if response.status != 200:
                         error_text = await response.text()
                         raise HTTPException(status_code=500,
                                             detail=f"Failed to send text task to moderator: {error_text}")
+
+        UserRepository.update_user_in_progress_tasks(session=session, username=username, task_id=task_id)
 
         return status.HTTP_200_OK

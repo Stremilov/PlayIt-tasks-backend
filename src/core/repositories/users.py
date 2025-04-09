@@ -17,4 +17,14 @@ class UserRepository:
 
         return row[0] if row else None
 
+    @staticmethod
+    def update_user_in_progress_tasks(session: Session, username: str, task_id: int):
+        stmt = text("""
+                UPDATE users
+                SET in_progress = array_append(COALESCE(in_progress, '{}'), :task_id)
+                WHERE username = :username
+            """)
+        session.execute(stmt, {"task_id": task_id, "username": username})
+        session.commit()
+
 

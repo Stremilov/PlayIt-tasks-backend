@@ -116,10 +116,12 @@ class TaskService:
             35: "https://t.me/c/2621459328/17",
             36: "https://t.me/c/2621459328/18",
         }
-
-        message = f"📎 Задание №{task_id}\n\n💲 Количество баллов: {value}\n\n Проверить ответ: {answers[task_id]}"
+        logger.info("Создание сообщения")
+        message = f"📎 Задание №{task_id}\n\n💲 Количество баллов: {value}\n\nПроверить ответ: {answers[task_id]}"
         if text and text.strip():
             message += f"\n\n🖋 Текст пользователя: {text}"
+
+        logger.info("Сообщение собрано")
 
         keyboard = {
             "inline_keyboard": [

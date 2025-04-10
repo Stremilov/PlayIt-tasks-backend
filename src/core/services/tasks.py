@@ -168,11 +168,13 @@ class TaskService:
                 async with client_session.post(url, data=form_data) as response:
                     if response.status != 200:
                         error_text = await response.text()
+                        logger.error(f"Failed to send task to moderator: {error_text}")
                         raise HTTPException(status_code=500, detail=f"Failed to send task to moderator: {error_text}")
             else:
                 async with client_session.post(url, json=payload) as response:
                     if response.status != 200:
                         error_text = await response.text()
+                        logger.error(f"Failed to send task to moderator: {error_text}")
                         raise HTTPException(status_code=500,
                                             detail=f"Failed to send text task to moderator: {error_text}")
 

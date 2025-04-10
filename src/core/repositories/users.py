@@ -27,4 +27,14 @@ class UserRepository:
         session.execute(stmt, {"task_id": task_id, "username": username})
         session.commit()
 
+    @staticmethod
+    def is_task_already_in_progress(session: Session, username: str, task_id: int) -> bool:
+        stmt = text("""
+            SELECT :task_id = ANY(in_progress)
+            FROM users
+            WHERE username = :username
+        """)
+        result = session.execute(stmt, {"task_id": task_id, "username": username}).scalar()
+        return bool(result)
+
 

@@ -124,7 +124,11 @@ class TaskService:
             return status.HTTP_200_OK
 
         logger.info("Создание сообщения")
-        message = f"📎 Задание №{task_id}\n\n👤 Пользователь: @{username}\n\n💲 Количество баллов: {value}\n\nПроверить ответ: {answers[task_id]}"
+        if task_id not in answers:
+            message = f"📎 Задание №{task_id}\n\n👤 Пользователь: @{username}\n\n💲 Количество баллов: {value}"
+        else:
+            message = f"📎 Задание №{task_id}\n\n👤 Пользователь: @{username}\n\n💲 Количество баллов: {value}\n\nПроверить ответ: {answers[task_id]}"
+
         if text and text.strip():
             message += f"\n\n🖋 Текст пользователя: {text}"
 
